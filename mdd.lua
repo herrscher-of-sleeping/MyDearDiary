@@ -7,6 +7,7 @@ local commands = {
   init = require "commands.init",
   start = require "commands.start",
   stop = require "commands.stop",
+  checkpoint = require "commands.checkpoint",
   report = require "commands.report",
   help = require "commands.help",
 }
