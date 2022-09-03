@@ -77,21 +77,33 @@ end
 local function run(model, args)
   local items = model:get_logged_items()
   if args.report_type == "daily" then
+		local total_time = 0
     local days = daily_report(items)
+		local lines
+		local function out(line, n)
+			if n then
+				table.insert(lines, n, line)
+			else
+				table.insert(lines, line)
+			end
+		end
     for i = 1, #days do
-      print("= Day " .. days[i].day .. " =")
+			lines = {}
+      out("= Day " .. days[i].day .. " =")
       local accumulated_duration = 0
       for j = 1, #days[i].items do
         local task_data = days[i].items[j]
-        print("Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
+        out(" * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
         accumulated_duration = accumulated_duration + task_data.task_report.duration
-        print("  Time spent on:")
         for _, desc in ipairs(task_data.task_report.descriptions) do
-          print("    " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
+          out("   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
         end
       end
-      print("  Total duration: " .. pretty_print_duration(accumulated_duration))
+			total_time = total_time + accumulated_duration
+      out(" > Total duration: " .. pretty_print_duration(accumulated_duration), 2)
+			print(table.concat(lines, '\n'))
     end
+		print("Total time: " .. pretty_print_duration(total_time))
   end
 
   return true
