@@ -1,17 +1,5 @@
 local constants = require "constants"
-local git = require "util.git"
 local util = require "util"
-
-local function append_to_log_file(config_folder, line)
-  local log_file = config_folder .. "/" .. constants.log_file
-  local fd = io.open(log_file, "a+")
-  if not fd then
-    return false, "Couldn't open file " .. log_file
-  end
-  fd:write(line .. "\n")
-  fd:close()
-  return true
-end
 
 local function try_stop_tracking_and_continue(model, task)
   if util.dialog.ask_for_confirmation("Currently task " .. task .. " is active. Stop task and continue? y/n") then
@@ -25,7 +13,7 @@ local function try_stop_tracking_and_continue(model, task)
 end
 
 local function run(model, args)
-  local task_name = args.task_name or git.get_current_branch()
+  local task_name = args.task_name or util.git.get_current_branch()
   if not task_name then
     return false, "You must provide task name if it wasn't previously selected or you're not in Git repository"
   end
@@ -38,7 +26,7 @@ local function run(model, args)
       end
     end
   end
-  local time = util.time.current_time() --os.time()
+  local time = util.time.current_time()
   local ok, err = model:start(time, task_name)
   if not ok then
     return false, err
