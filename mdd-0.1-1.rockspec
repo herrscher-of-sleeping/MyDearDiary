@@ -1,5 +1,5 @@
 package = "mdd"
-version = "0.0-1"
+version = "0.1-1"
 source = {
   url = "..." -- We don't have one yet
 }
@@ -25,7 +25,9 @@ build = {
     ["commands.report"] = "commands/report.lua",
     ["commands.start"] = "commands/start.lua",
     ["commands.stop"] = "commands/stop.lua",
-    ["commands.help"] = "commands/help.lua",
+    ["commands.pause"] = "commands/pause.lua",
+    ["commands.resume"] = "commands/resume.lua",
+    ["commands.checkpoint"] = "commands/checkpoint.lua",
     ["util.init"] = "util/init.lua",
     ["util.git"] = "util/git.lua",
     ["util.dialog"] = "util/dialog.lua",

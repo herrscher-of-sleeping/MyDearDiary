@@ -11,19 +11,38 @@ local function run(model, args)
     return false, "No task is currently running"
   end
 
-  local time = util.time.current_time() -- os.time()
-  local ok, err = model:stop(time, args.work_description or "")
+  local time = util.time.current_time()
+  local ok, err = model.commands.stop(time, args.work_description or "")
   if not ok then
     return false, err
   end
   return true
 end
 
-local function configure_parser(parser)
+local function configure(model, parser)
   parser:argument("work_description"):args("?")
+
+  model:register_action(
+    "stop",
+    {
+      write = function(time, descr)
+        if descr then
+          return ("%s %s"):format(time, descr)
+        else
+          return ("%s"):format(time)
+        end
+      end,
+      read = function(line)
+        local time_string = (line:match("(.- .-) ")) or (line:match("(.- .-)$"))
+        local time = util.time.parse_time_string(time_string)
+        local desc = line:match(".- .- (.+)")
+        return { time = time, description = desc }
+      end
+    }
+  )
 end
 
 return {
-  configure_parser = configure_parser,
+  configure = configure,
   run = run,
 }

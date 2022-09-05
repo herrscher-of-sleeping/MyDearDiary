@@ -1,7 +1,5 @@
-local home = os.getenv("HOME")
 local model = require "model"
 local argparse = require "argparse"
-
 
 local commands = {
   init = require "commands.init",
@@ -9,24 +7,27 @@ local commands = {
   stop = require "commands.stop",
   checkpoint = require "commands.checkpoint",
   report = require "commands.report",
-  help = require "commands.help",
+  pause = require "commands.pause",
+  resume = require "commands.resume",
 }
 
+local noop = function() end
+
 local parser = argparse()
-parser:command_target("command")
-for command_name, command_module in pairs(commands) do
-  command_module.configure_parser(
-    parser:command(command_name)
-  )
-end
 
 local function main(args)
+  local model = model.make_model()
+
+  parser:command_target("command")
+  for command_name, command_module in pairs(commands) do
+    local configure = command_module.configure or noop
+    configure(model, parser:command(command_name))
+  end
+
   local parsed_args = parser:parse(args)
   local command_name = parsed_args.command
 
   local command_impl = commands[command_name].run
-
-  local model = model.make_model()
 
   local ok, err = command_impl(model, parsed_args)
   if not ok then
@@ -35,7 +36,7 @@ local function main(args)
   end
 
   if model then
-    model:write()
+    model:save()
   end
 end
 

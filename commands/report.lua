@@ -20,15 +20,6 @@ local function pretty_print_duration(seconds)
   return ("%.2dh %.2dm %.2ds"):format(split_time.hours, split_time.minutes, split_time.seconds)
 end
 
-local function pretty_report(pair)
-  local report = ("Task %s: start %s, duration %s"):format(
-    pair.task,
-    os.date("%Y-%m-%d %H:%M", pair.start),
-    pretty_print_duration(pair.stop - pair.start)
-  )
-  return report
-end
-
 local function daily_report(items)
   local reports_per_day = {}
   local current_day
@@ -75,10 +66,45 @@ local function daily_report(items)
 end
 
 local function run(model, args)
-  local items = model:get_logged_items()
+  if not model then
+    return nil, "Couldn't find log file"
+  end
+  local actions, err = model:get_logged_actions()
+  if not actions then
+    return nil, err
+  end
+  local start_stop_pairs = {}
+  do
+    local pair, last_task
+    local paused_pairs = {}
+    for _, item in pairs(actions) do
+      if item.action == "start" then
+        last_task = item.task
+        pair = { start = item.time, task = item.task }
+      elseif item.action == "stop" then
+        if pair.start then
+          pair.stop = item.time
+          pair.description = item.description
+          table.insert(start_stop_pairs, pair)
+        end
+        for _, paused_pair in pairs(paused_pairs) do
+          paused_pair.description = item.description
+        end
+        paused_pairs = {}
+        pair = {}
+      elseif item.action == "resume" then
+        pair = { start = item.time, task = last_task }
+      elseif item.action == "pause" then
+        pair.stop = item.time
+        table.insert(paused_pairs, pair)
+        table.insert(start_stop_pairs, pair)
+        pair = {}
+      end
+    end
+  end
   if args.report_type == "daily" then
 		local total_time = 0
-    local days = daily_report(items)
+    local days = daily_report(start_stop_pairs)
 		local lines
 		local function out(line, n)
 			if n then
@@ -95,12 +121,25 @@ local function run(model, args)
         local task_data = days[i].items[j]
         out(" * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
         accumulated_duration = accumulated_duration + task_data.task_report.duration
-        for _, desc in ipairs(task_data.task_report.descriptions) do
+        -- group descriptions in case of the same desc
+        local grouped_by_desc_text = {}
+        do
+          for _, desc in ipairs(task_data.task_report.descriptions) do
+            local description_text = desc.description or "unknown"
+            if not grouped_by_desc_text[description_text] then
+              grouped_by_desc_text[description_text] = desc
+            else
+              local grouped_desc = grouped_by_desc_text[description_text]
+              grouped_desc.duration = grouped_desc.duration + desc.duration
+            end
+          end
+        end
+        for _, desc in pairs(grouped_by_desc_text) do
           out("   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
         end
       end
 			total_time = total_time + accumulated_duration
-      out(" > Total duration: " .. pretty_print_duration(accumulated_duration), 2)
+      out(" > Total time: " .. pretty_print_duration(accumulated_duration), 2)
 			print(table.concat(lines, '\n'))
     end
 		print("Total time: " .. pretty_print_duration(total_time))
@@ -109,11 +148,11 @@ local function run(model, args)
   return true
 end
 
-local function configure_parser(parser)
+local function configure(model, parser)
   parser:argument("report_type"):choices({"daily"})
 end
 
 return {
-  configure_parser = configure_parser,
+  configure = configure,
   run = run,
 }

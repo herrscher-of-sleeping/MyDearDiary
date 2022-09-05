@@ -1,12 +1,11 @@
 local constants = require "constants"
 local stat = require "posix.sys.stat"
-local lfs = require "lfs"
 local util = require "util"
 
 local model_mt = {}
 model_mt.__index = model_mt
 
-function is_dir(folder_name)
+local function is_dir(folder_name)
   local stat_ = stat.stat(folder_name)
   if stat_ then
     local root_stat_ = stat.stat("/")
@@ -52,6 +51,11 @@ local function read_log_file(log_file)
   return strings
 end
 
+function model_mt:write(format_string, ...)
+  local line_to_write = format_string:format(...)
+  table.insert(self._lines_to_write, line_to_write)
+end
+
 function model_mt:start(time, task)
   if type(task) ~= "string" then
     return false, "Task is of type " .. type(task)
@@ -78,8 +82,22 @@ function model_mt:stop(time, desc)
   return true
 end
 
-function model_mt:write()
+local line_parsers = {}
+
+function model_mt:register_action(command, handlers)
+  self.commands[command] = function(...)
+    local line = command .. " " .. handlers.write(...)
+    table.insert(self._lines_to_write, line)
+    return true
+  end
+  line_parsers[command] = handlers.read
+end
+
+function model_mt:save()
   local fd = io.open(self._log_file, "a+")
+  if not fd then
+    return nil, "Couldn't open log file " .. self._log_file
+  end
   for _, line in ipairs(self._lines_to_write) do
     fd:write(line)
     fd:write("\n")
@@ -93,36 +111,28 @@ end
 
 local function parse_line(line)
   local action = line:match("(%S+) ")
-  local parts = { action = action }
-  if action == "start" then
-    local time_string, task = line:match("%S+ (.- .-) (.+)")
-    local time = util.time.parse_time_string(time_string)
-    parts.start = time
-    parts.task = task
-  elseif action == "stop" then
-    local time_string = (line:match("%S+ (.- .-) ")) or (line:match("%S+ (.- .-)$"))
-    local time = util.time.parse_time_string(time_string)
-    local desc = line:match("%S+ .- .- (.+)")
-    parts.stop = time
-    parts.description = desc
+  if not action then
+    return { action = "dummy" }
   end
-  return parts
+  if line_parsers[action] then
+    local args_string = line:match("%S+ (.+)")
+    local parts, err = line_parsers[action](args_string)
+    parts.action = action
+    return parts, err
+  else
+    return nil, "Unknown command " .. action
+  end
 end
 
-function model_mt:get_logged_items()
+function model_mt:get_logged_actions()
   local items = {}
-  local pair = {}
   for i, line in ipairs(self._log) do
-    local command_parts = parse_line(line)
-    if command_parts.action == "start" then
-      pair.start = command_parts.start
-      pair.task = command_parts.task
-    elseif command_parts.action == "stop" then
-      pair.stop = command_parts.stop
-      pair.duration = pair.stop - pair.start
-      pair.description = command_parts.description
-      table.insert(items, pair)
-      pair = {}
+    local command_parts, err = parse_line(line)
+    if not command_parts then
+      return nil, err
+    end
+    if command_parts.action ~= "dummy" then
+      table.insert(items, command_parts)
     end
   end
   return items
@@ -130,13 +140,76 @@ end
 
 -- index is reverse: 1 is last
 function model_mt:get_tracking_info_at_pos(pos)
-  local real_pos = #self._log - pos + 1
-  local line = self._log[real_pos]
-  if not line then
+  local lines, err = self:get_logged_actions()
+  if not lines then
+    return nil, err
+  end
+
+  local real_pos = #lines - pos + 1
+  local line = lines[real_pos]
+  return line
+end
+
+function model_mt:get_last_paused_task_start()
+  local lines, err = self:get_logged_actions()
+  if not lines then
+    return nil, err
+  end
+
+  if not lines[1] then
     return nil
   end
-  local command_parts = parse_line(line)
-  return command_parts
+
+  local paused_item
+  for i = #lines, 1, -1 do
+    local item = lines[i]
+    if item.action == "pause" then
+      paused_item = item
+    elseif paused_item and item.action == "start" then
+      return item
+    end
+  end
+end
+
+function model_mt:get_last_task_info()
+  local lines, err = self:get_logged_actions()
+  if not lines then
+    return nil, err
+  end
+
+  if not lines[1] then
+    return nil
+  end
+
+  for i = #lines, 1, -1 do
+    local item = lines[i]
+    if item.action == "start" then
+      return {
+        status = "running",
+        task = item.task,
+      }
+    elseif item.action == "resume" then
+      local task_start = self:get_last_paused_task_start()
+      if not task_start then
+        return nil, "Error in log: couldn't find start of paused task"
+      end
+      return {
+        status = "running",
+        task = task_start.task,
+      }
+    elseif item.action == "stop" then
+      return nil
+    elseif item.action == "pause" then
+      local task_start = self:get_last_paused_task_start()
+      if not task_start then
+        return nil, "Error in log: couldn't find start of paused task"
+      end
+      return {
+        status = "paused",
+        task = task_start.task,
+      }
+    end
+  end
 end
 
 function model_mt:get_config_folder()
@@ -145,7 +218,8 @@ end
 
 local function make_model()
   local model = {
-    _lines_to_write = {}
+    _lines_to_write = {},
+    commands = {},
   }
   setmetatable(model, model_mt)
   local config_folder, err = find_config_folder()
