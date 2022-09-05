@@ -9,6 +9,7 @@ local commands = {
   report = require "commands.report",
   pause = require "commands.pause",
   resume = require "commands.resume",
+  log = require "commands.log",
 }
 
 local noop = function() end

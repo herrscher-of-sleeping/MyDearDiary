@@ -28,6 +28,7 @@ build = {
     ["commands.pause"] = "commands/pause.lua",
     ["commands.resume"] = "commands/resume.lua",
     ["commands.checkpoint"] = "commands/checkpoint.lua",
+    ["commands.log"] = "commands/log.lua",
     ["util.init"] = "util/init.lua",
     ["util.git"] = "util/git.lua",
     ["util.dialog"] = "util/dialog.lua",
