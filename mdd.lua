@@ -10,6 +10,7 @@ local commands = {
   pause = require "commands.pause",
   resume = require "commands.resume",
   log = require "commands.log",
+  archive = require "commands.archive",
 }
 
 local noop = function() end

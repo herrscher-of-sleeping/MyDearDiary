@@ -29,6 +29,7 @@ build = {
     ["commands.resume"] = "commands/resume.lua",
     ["commands.checkpoint"] = "commands/checkpoint.lua",
     ["commands.log"] = "commands/log.lua",
+    ["commands.archive"] = "commands/archive.lua",
     ["util.init"] = "util/init.lua",
     ["util.git"] = "util/git.lua",
     ["util.dialog"] = "util/dialog.lua",
