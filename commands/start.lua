@@ -10,6 +10,9 @@ local function try_stop_tracking_and_continue(model, task)
 end
 
 local function run(model, args)
+  if not model then
+    return nil, "Configuration not found in this folder"
+  end
   local task_name = args.task_name or util.git.get_current_branch()
   if not task_name then
     return false, "You must provide task name if it wasn't previously selected or you're not in Git repository"
@@ -31,6 +34,9 @@ end
 local function configure(model, parser)
   parser:argument("task_name"):args("?")
 
+  if not model then
+    return
+  end
   model:register_action("start",
     {
       write = function(time, task)

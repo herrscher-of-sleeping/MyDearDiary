@@ -67,7 +67,7 @@ end
 
 local function run(model, args)
   if not model then
-    return nil, "Couldn't find log file"
+    return nil, "Configuration not found in this folder"
   end
   local actions, err = model:get_logged_actions()
   if not actions then

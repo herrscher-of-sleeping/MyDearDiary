@@ -1,6 +1,9 @@
 local util = require "util"
 
 local function run(model, args)
+  if not model then
+    return nil, "Configuration not found in this folder"
+  end
   local last_line = model:get_tracking_info_at_pos(1)
   if last_line.action ~= "start" and last_line.action ~= "resume" then
     return false, "No task is currently running"
@@ -10,6 +13,9 @@ local function run(model, args)
 end
 
 local function configure(model, parser)
+  if not model then
+    return
+  end
   model:register_action(
     "pause",
     {

@@ -1,6 +1,9 @@
 local util = require "util"
 
 local function run(model, args)
+  if not model then
+    return nil, "Configuration not found in this folder"
+  end
   local log_file_lines = model:get_log_lines()
   if #log_file_lines == 0 then
     return false, "No task is currently running"
@@ -22,6 +25,9 @@ end
 local function configure(model, parser)
   parser:argument("work_description"):args("?")
 
+  if not model then
+    return
+  end
   model:register_action(
     "stop",
     {
