@@ -6,40 +6,16 @@ local datafile = util.datafile
 local model_mt = {}
 model_mt.__index = model_mt
 
-local function is_dir(folder_name)
-  local stat_ = stat.stat(folder_name)
-  if stat_ then
-    local root_stat_ = stat.stat("/")
-    if root_stat_.st_ino == stat_.st_ino then
-      return false, "Couldn't open directory " .. folder_name
-    end
-    return stat.S_ISDIR(stat_.st_mode)
-  end
-  return false, "Couldn't open directory " .. folder_name
-end
-
-local function is_file(file_name)
-  local stat_ = stat.stat(file_name)
-  if stat_ then
-    local root_stat_ = stat.stat("/")
-    if root_stat_.st_ino == stat_.st_ino then
-      return false, "Couldn't open file " .. file_name
-    end
-    return stat.S_ISREG(stat_.st_mode)
-  end
-  return false, "Couldn't open file " .. file_name
-end
-
 local function find_project_config_file(dir_path)
   dir_path = dir_path or "."
-  while is_dir(dir_path) do
+  while util.fs.is_dir(dir_path) do
     local config_file
     if dir_path == "." then
       config_file = constants.config_file
     else
       config_file = dir_path .. "/" .. constants.config_file
     end
-    if is_file(config_file) then
+    if util.fs.is_file(config_file) then
       return config_file
     end
     if dir_path == "." then
