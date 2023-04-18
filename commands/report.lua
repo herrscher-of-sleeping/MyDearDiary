@@ -1,3 +1,7 @@
+-- TODO: rewrite this
+-- * make reports more compact
+-- * add filtering by time
+-- * add report for all projects
 local util = require "util"
 
 local seconds_per_minute = 60
@@ -102,57 +106,51 @@ local function run(model, args)
       end
     end
   end
-  if args.report_type == "daily" then
-		local total_time = 0
-    local days = daily_report(start_stop_pairs)
-		local lines
-		local function out(line, n)
-			if n then
-				table.insert(lines, n, line)
-			else
-				table.insert(lines, line)
-			end
-		end
-    for i = 1, #days do
-			lines = {}
-      out("= Day " .. days[i].day .. " =")
-      local accumulated_duration = 0
-      for j = 1, #days[i].items do
-        local task_data = days[i].items[j]
-        out(" * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
-        accumulated_duration = accumulated_duration + task_data.task_report.duration
-        -- group descriptions in case of the same desc
-        local grouped_by_desc_text = {}
-        do
-          for _, desc in ipairs(task_data.task_report.descriptions) do
-            local description_text = desc.description or "unknown"
-            if not grouped_by_desc_text[description_text] then
-              grouped_by_desc_text[description_text] = desc
-            else
-              local grouped_desc = grouped_by_desc_text[description_text]
-              grouped_desc.duration = grouped_desc.duration + desc.duration
-            end
+
+  local total_time = 0
+  local days = daily_report(start_stop_pairs)
+  local lines
+  local function out(line, n)
+    if n then
+      table.insert(lines, n, line)
+    else
+      table.insert(lines, line)
+    end
+  end
+  for i = 1, #days do
+    lines = {}
+    out("= Day " .. days[i].day .. " =")
+    local accumulated_duration = 0
+    for j = 1, #days[i].items do
+      local task_data = days[i].items[j]
+      out(" * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
+      accumulated_duration = accumulated_duration + task_data.task_report.duration
+      -- group descriptions in case of the same desc
+      local grouped_by_desc_text = {}
+      do
+        for _, desc in ipairs(task_data.task_report.descriptions) do
+          local description_text = desc.description or "unknown"
+          if not grouped_by_desc_text[description_text] then
+            grouped_by_desc_text[description_text] = desc
+          else
+            local grouped_desc = grouped_by_desc_text[description_text]
+            grouped_desc.duration = grouped_desc.duration + desc.duration
           end
         end
-        for _, desc in pairs(grouped_by_desc_text) do
-          out("   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
-        end
       end
-			total_time = total_time + accumulated_duration
-      out(" > Total time: " .. pretty_print_duration(accumulated_duration), 2)
-			print(table.concat(lines, '\n'))
+      for _, desc in pairs(grouped_by_desc_text) do
+        out("   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
+      end
     end
-		print("Total time: " .. pretty_print_duration(total_time))
+    total_time = total_time + accumulated_duration
+    out(" > Total time: " .. pretty_print_duration(accumulated_duration), 2)
+    print(table.concat(lines, '\n'))
   end
+  print("Total time: " .. pretty_print_duration(total_time))
 
   return true
 end
 
-local function configure(model, parser)
-  parser:argument("report_type"):choices({"daily"})
-end
-
 return {
-  configure = configure,
   run = run,
 }
