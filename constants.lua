@@ -1,7 +1,6 @@
 return {
-  config_folder = ".mdd",
-  config_file = "config",
-  archive_file = "archive",
+  config_file = ".mdd",
   log_file = "log",
+  app_name = "mdd",
   date_format = "%Y-%m-%d %H:%M:%S",
 }

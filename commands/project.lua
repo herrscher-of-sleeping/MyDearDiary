@@ -1,8 +1,8 @@
 local constants = require "constants"
-local util = require "util"
 
 local function run(model, args)
-  return model:initialize(args.project_name)
+  model:set_config_value("project_name", args.project_name)
+  return true
 end
 
 local function configure(model, parser)

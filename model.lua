@@ -1,6 +1,7 @@
 local constants = require "constants"
 local stat = require "posix.sys.stat"
 local util = require "util"
+local datafile = util.datafile
 
 local model_mt = {}
 model_mt.__index = model_mt
@@ -17,17 +18,29 @@ local function is_dir(folder_name)
   return false, "Couldn't open directory " .. folder_name
 end
 
-local function find_config_folder()
-  local dir_path = "."
-  while is_dir(dir_path) do
-    local config_folder
-    if dir_path == "." then
-      config_folder = constants.config_folder
-    else
-      config_folder = dir_path .. "/" .. constants.config_folder
+local function is_file(file_name)
+  local stat_ = stat.stat(file_name)
+  if stat_ then
+    local root_stat_ = stat.stat("/")
+    if root_stat_.st_ino == stat_.st_ino then
+      return false, "Couldn't open file " .. file_name
     end
-    if is_dir(config_folder) then
-      return config_folder
+    return stat.S_ISREG(stat_.st_mode)
+  end
+  return false, "Couldn't open file " .. file_name
+end
+
+local function find_project_config_file(dir_path)
+  dir_path = dir_path or "."
+  while is_dir(dir_path) do
+    local config_file
+    if dir_path == "." then
+      config_file = constants.config_file
+    else
+      config_file = dir_path .. "/" .. constants.config_file
+    end
+    if is_file(config_file) then
+      return config_file
     end
     if dir_path == "." then
       dir_path = ".."
@@ -38,11 +51,35 @@ local function find_config_folder()
   return false, "Config not found"
 end
 
+function model_mt:get_config_value(key)
+  local path, err = find_project_config_file(".")
+  if not path then
+    return nil, err
+  end
+  local cfg, err = util.ini.read(path)
+  if not cfg then
+    return nil, err
+  end
+
+  return cfg[key]
+end
+
+function model_mt:set_config_value(key, value)
+  local path, err = find_project_config_file(".")
+  if not path then
+    return nil, err
+  end
+  local cfg, err = util.ini.read(path)
+  cfg = cfg or {}
+  cfg[key] = value
+  util.ini.write(path, cfg)
+end
+
 local function read_log_file(log_file)
   local strings = {}
-  local fd = io.open(log_file, "r+")
+  local fd, err = datafile.open(log_file, "r+")
   if not fd then
-    return false, "Couldn't open file " .. log_file
+    return {}
   end
   for line in fd:lines() do
     table.insert(strings, line)
@@ -85,6 +122,9 @@ end
 local line_parsers = {}
 
 function model_mt:register_action(command, handlers)
+  if self._is_dummy then
+    return
+  end
   self.commands[command] = function(...)
     local line = command .. " " .. handlers.write(...)
     table.insert(self._lines_to_write, line)
@@ -94,8 +134,12 @@ function model_mt:register_action(command, handlers)
 end
 
 function model_mt:save()
-  local fd = io.open(self._log_file, "a+")
+  if not next(self._lines_to_write) then
+    return
+  end
+  local fd, err = datafile.open(self._log_file, "a+")
   if not fd then
+    print(err)
     return nil, "Couldn't open log file " .. self._log_file
   end
   for _, line in ipairs(self._lines_to_write) do
@@ -212,24 +256,42 @@ function model_mt:get_last_task_info()
   end
 end
 
-function model_mt:get_config_folder()
-  return self._config_folder
+function model_mt:initialize(project_name)
+  if not project_name then
+    return nil, "Need project name"
+  end
+  local ok, err = util.ini.write(
+    constants.config_file,
+    { project_name = project_name }
+  )
+  if not ok then
+    return nil, err
+  end
+  return true
 end
 
-local function make_model()
+function model_mt:is_dummy()
+  return self._is_dummy
+end
+
+local function make_model(is_project_path_init, project_name)
   local model = {
     _lines_to_write = {},
     commands = {},
   }
   setmetatable(model, model_mt)
-  local config_folder, err = find_config_folder()
-  model._config_folder = config_folder
-  if not model._config_folder then
-    return nil, err
+  if not is_project_path_init then
+    project_name = model:get_config_value("project_name")
   end
-  local log_file = config_folder .. "/" .. constants.log_file
-  model._log = read_log_file(log_file)
-  model._log_file = log_file
+
+  if project_name then
+    local log_file = project_name .. ".mddlog"
+    model._log_file = log_file
+    model._log = read_log_file(log_file)
+    model._log_file = log_file
+  else
+    model._is_dummy = true
+  end
   return model
 end
 

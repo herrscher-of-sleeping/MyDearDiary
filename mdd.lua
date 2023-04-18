@@ -1,8 +1,9 @@
-local model = require "model"
+local make_model = require("model").make_model
 local argparse = require "argparse"
 
 local commands = {
   init = require "commands.init",
+  project = require "commands.project",
   start = require "commands.start",
   stop = require "commands.stop",
   checkpoint = require "commands.checkpoint",
@@ -18,7 +19,13 @@ local noop = function() end
 local parser = argparse()
 
 local function main(args)
-  local model = model.make_model()
+  local model, err = make_model(args[1] == "init", args[2])
+  if not model then
+    print(err)
+    os.exit(1)
+  end
+
+  parser:option("-p --project", "Project name")
 
   parser:command_target("command")
   for command_name, command_module in pairs(commands) do
@@ -34,6 +41,7 @@ local function main(args)
   local ok, err = command_impl(model, parsed_args)
   if not ok then
     print("Command failed: ", err)
+    print(parser:get_usage())
     os.exit(1)
   end
 
@@ -42,4 +50,4 @@ local function main(args)
   end
 end
 
-main(args or {...})
+return main(args or {...})
