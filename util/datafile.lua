@@ -3,9 +3,9 @@ local lfs = require "lfs"
 local fs = require "util.fs"
 
 local xdg_data_path = os.getenv("XDG_DATA_PATH") or
-    os.getenv("HOME") .. "/.local/share/"
+    os.getenv("HOME") .. "/.local/share"
 
-local app_data_path = xdg_data_path .. "/" .. constants.app_name
+local app_data_path = xdg_data_path .. "/" .. constants.app_name .. "/"
 
 local function open(name, mode)
   if not fs.is_dir(app_data_path) then

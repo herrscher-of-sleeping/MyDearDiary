@@ -56,6 +56,10 @@ local function read_log_file(log_file)
   if not fd then
     return {}
   end
+  -- ignore this for now
+  -- if not fd then
+  --   return nil, err
+  -- end
   for line in fd:lines() do
     table.insert(strings, line)
   end
@@ -99,7 +103,7 @@ local actions = {}
 
 function model_mt:save()
   if not next(self._lines_to_write) then
-    return
+    return true
   end
   local fd, err = datafile.open(self._log_file, "a+")
   if not fd then
@@ -221,7 +225,7 @@ function model_mt:get_last_task_info()
   end
 end
 
-local function make_model(is_project_path_init, project_name)
+local function make_model(project_name)
   local model = {
     _lines_to_write = {},
     commands = {},
@@ -234,13 +238,22 @@ local function make_model(is_project_path_init, project_name)
     end
   })
   setmetatable(model, model_mt)
-  if not is_project_path_init then
-    project_name = model:get_config_value("project_name")
+  local err
+  if not project_name then
+    project_name, err = model:get_config_value("project_name")
+  end
+  if not project_name then
+    return nil, err
   end
 
-  local log_file = project_name .. ".mddlog"
+  local log_file = project_name .. "." .. constants.log_file_extension
   model._log_file = log_file
-  model._log = read_log_file(log_file)
+  model.project_name = project_name
+  local log, err = read_log_file(log_file)
+  if not log then
+    return nil, err
+  end
+  model._log = log
   return model
 end
 

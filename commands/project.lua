@@ -1,7 +1,11 @@
 local constants = require "constants"
 
 local function run(model, args)
-  model:set_config_value("project_name", args.project_name)
+  if args.project_name then
+    return model:set_config_value("project_name", args.project_name)
+  else
+    print(model.project_name)
+  end
   return true
 end
 
