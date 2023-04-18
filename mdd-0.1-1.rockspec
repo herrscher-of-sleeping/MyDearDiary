@@ -1,13 +1,12 @@
 package = "mdd"
 version = "0.1-1"
 source = {
-  url = "..." -- We don't have one yet
+  url = "git@github.com:herrscher-of-sleeping/MyDearDiary.git",
+  tag = "v0.1",
 }
 description = {
   summary = "Time tracking tool that understands git branches",
-  detailed = "lol",
   license = "GNU GPLv3",
-  homepage = "lol",
 }
 dependencies = {
   "lua >= 5.1, <= 5.4",
