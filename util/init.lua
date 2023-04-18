@@ -5,4 +5,5 @@ return {
   fs = require "util.fs",
   datafile = require "util.datafile",
   ini = require "util.ini",
+  project = require "util.project",
 }

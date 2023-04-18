@@ -10,7 +10,6 @@ description = {
 dependencies = {
   "lua >= 5.1, <= 5.4",
   "luafilesystem >= 1.8.0, < 1.9.0",
-  "luaposix >= 35.1, < 36.0",
   "argparse >= 0.7.1, < 0.8.0",
 }
 build = {
@@ -29,6 +28,7 @@ build = {
     ["commands.log"] = "commands/log.lua",
     ["commands.project"] = "commands/project.lua",
     ["commands.archive"] = "commands/archive.lua",
+    ["commands.list_projects"] = "commands/list_projects.lua",
     ["util.init"] = "util/init.lua",
     ["util.git"] = "util/git.lua",
     ["util.dialog"] = "util/dialog.lua",
@@ -36,6 +36,7 @@ build = {
     ["util.fs"] = "util/fs.lua",
     ["util.datafile"] = "util/datafile.lua",
     ["util.ini"] = "util/ini.lua",
+    ["util.project"] = "util/project.lua",
     ["constants"] = "constants.lua",
     ["model"] = "model.lua",
   }

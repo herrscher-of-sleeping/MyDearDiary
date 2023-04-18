@@ -12,6 +12,7 @@ local commands = {
   resume = require "commands.resume",
   log = require "commands.log",
   archive = require "commands.archive",
+  ["list-projects"] = require "commands.list_projects",
 }
 
 local noop = function() end
@@ -34,7 +35,6 @@ local function run_without_model(command_impl, parsed_args)
 end
 
 local function main(args)
-  parser:option("-p --project", "Project name")
   parser:command_target("command")
   for command_name, command_module in pairs(commands) do
     local configure = command_module.configure or noop
@@ -56,7 +56,7 @@ local function main(args)
     or run_with_model
   local ok, err = run_cmd(command_impl, parsed_args)
   if not ok then
-    print("Command failed: " .. err)
+    print("Command failed: " .. (err or "Unknown error"))
     print(parser:get_usage())
     os.exit(1)
   end
