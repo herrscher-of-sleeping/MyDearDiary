@@ -15,40 +15,37 @@ local function run(model, args)
   end
 
   local time = util.time.current_time()
-  local ok, err = model.commands.stop(time, args.work_description or "")
+  local ok, err = model.actions.stop(time, args.work_description or "")
   if not ok then
     return false, err
   end
   return true
 end
 
-local function configure(model, parser)
-  parser:argument("work_description"):args("?")
-
-  if not model then
-    return
-  end
-  model:register_action(
-    "stop",
-    {
-      write = function(time, descr)
-        if descr then
-          return ("%s %s"):format(time, descr)
-        else
-          return ("%s"):format(time)
-        end
-      end,
-      read = function(line)
-        local time_string = (line:match("(.- .-) ")) or (line:match("(.- .-)$"))
-        local time = util.time.parse_time_string(time_string)
-        local desc = line:match(".- .- (.+)")
-        return { time = time, description = desc }
+local actions = {
+  stop = {
+    write = function(time, descr)
+      if descr then
+        return ("%s %s"):format(time, descr)
+      else
+        return ("%s"):format(time)
       end
-    }
-  )
+    end,
+    read = function(line)
+      local time_string = (line:match("(.- .-) ")) or (line:match("(.- .-)$"))
+      local time = util.time.parse_time_string(time_string)
+      local desc = line:match(".- .- (.+)")
+      return { time = time, description = desc }
+    end
+  }
+}
+
+local function configure(parser)
+  parser:argument("work_description"):args("?")
 end
 
 return {
   configure = configure,
   run = run,
+  actions = actions,
 }

@@ -1,5 +1,4 @@
 local constants = require "constants"
-local stat = require "posix.sys.stat"
 local util = require "util"
 local datafile = util.datafile
 
@@ -96,18 +95,7 @@ function model_mt:stop(time, desc)
 end
 
 local line_parsers = {}
-
-function model_mt:register_action(command, handlers)
-  if self._is_dummy then
-    return
-  end
-  self.commands[command] = function(...)
-    local line = command .. " " .. handlers.write(...)
-    table.insert(self._lines_to_write, line)
-    return true
-  end
-  line_parsers[command] = handlers.read
-end
+local actions = {}
 
 function model_mt:save()
   if not next(self._lines_to_write) then
@@ -123,6 +111,7 @@ function model_mt:save()
     fd:write("\n")
   end
   fd:close()
+  return true
 end
 
 function model_mt:get_log_lines()
@@ -232,45 +221,39 @@ function model_mt:get_last_task_info()
   end
 end
 
-function model_mt:initialize(project_name)
-  if not project_name then
-    return nil, "Need project name"
-  end
-  local ok, err = util.ini.write(
-    constants.config_file,
-    { project_name = project_name }
-  )
-  if not ok then
-    return nil, err
-  end
-  return true
-end
-
-function model_mt:is_dummy()
-  return self._is_dummy
-end
-
 local function make_model(is_project_path_init, project_name)
   local model = {
     _lines_to_write = {},
     commands = {},
   }
+  model.actions = setmetatable({}, {
+    __index = function(self, k)
+      return function(...)
+        return actions[k](model, ...)
+      end
+    end
+  })
   setmetatable(model, model_mt)
   if not is_project_path_init then
     project_name = model:get_config_value("project_name")
   end
 
-  if project_name then
-    local log_file = project_name .. ".mddlog"
-    model._log_file = log_file
-    model._log = read_log_file(log_file)
-    model._log_file = log_file
-  else
-    model._is_dummy = true
-  end
+  local log_file = project_name .. ".mddlog"
+  model._log_file = log_file
+  model._log = read_log_file(log_file)
   return model
 end
 
+local function register_action(command, handlers)
+  actions[command] = function(model, ...)
+    local line = command .. " " .. handlers.write(...)
+    table.insert(model._lines_to_write, line)
+    return true
+  end
+  line_parsers[command] = handlers.read
+end
+
 return {
-  make_model = make_model
+  make_model = make_model,
+  register_action = register_action,
 }

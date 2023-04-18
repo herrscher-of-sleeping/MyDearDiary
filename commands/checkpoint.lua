@@ -12,14 +12,14 @@ local function run(model, args)
     return false, "Task hasn't been started"
   end
   local time = util.time.current_time()
-  local ok, err = model.commands.stop(time, description)
+  local ok, err = model.actions.stop(time, description)
   if ok then
-    ok, err = model.commands.start(time, last_line.task)
+    ok, err = model.actions.start(time, last_line.task)
   end
   return ok, err
 end
 
-local function configure(model, parser)
+local function configure(parser)
   parser:argument("description")
 end
 

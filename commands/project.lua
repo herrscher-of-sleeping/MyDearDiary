@@ -5,7 +5,7 @@ local function run(model, args)
   return true
 end
 
-local function configure(model, parser)
+local function configure(parser)
   parser:argument("project_name"):args("?")
 end
 

@@ -3,7 +3,7 @@ local util = require "util"
 
 local function try_stop_tracking_and_continue(model, task)
   if util.dialog.ask_for_confirmation("Currently task " .. task .. " is active. Stop task and continue? y/n") then
-    model.commands.stop(util.time.current_time())
+    model.actions.stop(util.time.current_time())
     return true
   end
   return false, "Exit"
@@ -27,31 +27,29 @@ local function run(model, args)
     end
   end
   local time = util.time.current_time()
-  local ok, err = model.commands.start(time, task_name)
+  local ok, err = model.actions.start(time, task_name)
   return ok, err
 end
 
-local function configure(model, parser)
+local function configure(parser)
   parser:argument("task_name"):args("?")
-
-  if not model then
-    return
-  end
-  model:register_action("start",
-    {
-      write = function(time, task)
-        return ("%s %s"):format(time, task)
-      end,
-      read = function(args_line)
-        local time_string, task = args_line:match("(.- .-) (.+)")
-        local time = util.time.parse_time_string(time_string)
-        return { time = time, task = task }
-      end,
-    }
-  )
 end
+
+local actions = {
+  start = {
+    write = function(time, task)
+      return ("%s %s"):format(time, task)
+    end,
+    read = function(args_line)
+      local time_string, task = args_line:match("(.- .-) (.+)")
+      local time = util.time.parse_time_string(time_string)
+      return { time = time, task = task }
+    end,
+  }
+}
 
 return {
   configure = configure,
   run = run,
+  actions = actions,
 }

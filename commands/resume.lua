@@ -8,30 +8,24 @@ local function run(model, args)
   if last_line.action ~= "pause" then
     return false, "No task has been paused"
   end
-  model.commands.resume(util.time.current_time())
+  model.actions.resume(util.time.current_time())
   return true
 end
 
-local function configure(model, parser)
-  if not model then
-    return
-  end
-  model:register_action(
-    "resume",
-    {
-      read = function(args_line)
-        local time_string = args_line:match("(.- .-)$")
-        local time = util.time.parse_time_string(time_string)
-        return { time = time }
-      end,
-      write = function(time)
-        return time
-      end
-    }
-  )
-end
+local actions = {
+  resume = {
+    read = function(args_line)
+      local time_string = args_line:match("(.- .-)$")
+      local time = util.time.parse_time_string(time_string)
+      return { time = time }
+    end,
+    write = function(time)
+      return time
+    end
+  }
+}
 
 return {
-  configure = configure,
-  run = run
+  run = run,
+  actions = actions,
 }
