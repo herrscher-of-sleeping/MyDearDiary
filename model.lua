@@ -39,6 +39,17 @@ function model_mt:get_config_value(key)
   return cfg[key]
 end
 
+function model_mt:_get_full_log_file_path()
+  return datafile.app_data_path .. self._log_file
+end
+
+function model_mt:edit_log_in_text_editor()
+  local editor = util.git.get_config_value("core.editor") or "nvim"
+  local path = self:_get_full_log_file_path()
+  local ok = os.execute(editor .. " " .. path)
+  return ok
+end
+
 function model_mt:set_config_value(key, value)
   local path, err = find_project_config_file(".")
   if not path then

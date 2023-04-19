@@ -13,6 +13,7 @@ local commands = {
   resume = require "commands.resume",
   log = require "commands.log",
   archive = require "commands.archive",
+  edit = require "commands.edit",
   ["list-projects"] = require "commands.list_projects",
 }
 

@@ -28,6 +28,7 @@ build = {
     ["commands.log"] = "commands/log.lua",
     ["commands.project"] = "commands/project.lua",
     ["commands.archive"] = "commands/archive.lua",
+    ["commands.edit"] = "commands/edit.lua",
     ["commands.list_projects"] = "commands/list_projects.lua",
     ["util.init"] = "util/init.lua",
     ["util.git"] = "util/git.lua",
