@@ -109,26 +109,24 @@ local function run(model, args)
 
   local total_time = 0
   local days = daily_report(start_stop_pairs)
-  local lines
-  local function out(line, n)
-    if n then
-      table.insert(lines, n, line)
-    else
-      table.insert(lines, line)
-    end
-  end
   for i = 1, #days do
-    lines = {}
-    out("= Day " .. days[i].day .. " =")
+    local report = { tasks = {} }
+    report.header = "= Day " .. days[i].day .. ": "
     local accumulated_duration = 0
     for j = 1, #days[i].items do
       local task_data = days[i].items[j]
-      out(" * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration))
+      local task_report = { lines = {} }
+      table.insert(report.tasks, task_report)
+      task_report.header = " * Task " .. task_data.task .. ", " .. pretty_print_duration(task_data.task_report.duration)
       accumulated_duration = accumulated_duration + task_data.task_report.duration
       -- group descriptions in case of the same desc
+      local at_least_one_of_tasks_has_description
       local grouped_by_desc_text = {}
       do
         for _, desc in ipairs(task_data.task_report.descriptions) do
+          if desc.description then
+            at_least_one_of_tasks_has_description = true
+          end
           local description_text = desc.description or "unknown"
           if not grouped_by_desc_text[description_text] then
             grouped_by_desc_text[description_text] = desc
@@ -138,13 +136,27 @@ local function run(model, args)
           end
         end
       end
-      for _, desc in pairs(grouped_by_desc_text) do
-        out("   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration))
+      if at_least_one_of_tasks_has_description then
+        for _, desc in pairs(grouped_by_desc_text) do
+          table.insert(
+            task_report.lines,
+            "   * " .. (desc.description or "unknown") .. ": " .. pretty_print_duration(desc.duration)
+          )
+        end
       end
     end
     total_time = total_time + accumulated_duration
-    out(" > Total time: " .. pretty_print_duration(accumulated_duration), 2)
-    print(table.concat(lines, '\n'))
+    report.header = report.header .. pretty_print_duration(accumulated_duration)
+
+    do
+      print(report.header)
+      for _, task_report in ipairs(report.tasks) do
+        print(task_report.header)
+        for _, line in pairs(task_report.lines) do
+          print(line)
+        end
+      end
+    end
   end
   print("Total time: " .. pretty_print_duration(total_time))
 
