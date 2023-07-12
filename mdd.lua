@@ -66,4 +66,4 @@ local function main(args)
   end
 end
 
-return main(args or {...})
+return main(arg or {...})
