@@ -1,6 +1,5 @@
 local modellib = require "model"
 local argparse = require "argparse"
-local inspect = require "inspect"
 
 local commands = {
   init = require "commands.init",
